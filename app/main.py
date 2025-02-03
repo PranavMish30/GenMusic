@@ -54,8 +54,8 @@ def get_rec_playlist():
     if not sess_access_token or not sess_refresh_token or not sess_token_create_time:
         return "error, missing token", 403
 
-    if (datetime.utcnow() - sess_token_create_time).total_seconds() > 3500:
-        return "error, expired token", 400
+    # if (datetime.utcnow() - sess_token_create_time).total_seconds() > 3500:
+    #     return "error, expired token", 400
 
     #get json data from request 
     data = request.get_json()
@@ -79,8 +79,8 @@ def create_private_playlist():
     if not sess_access_token or not sess_refresh_token or not sess_token_create_time or not sess_username:
         return "error, missing token", 403 
 
-    if (datetime.utcnow() - sess_token_create_time).total_seconds() > 3500:
-        return "error, expired token", 400
+    # if (datetime.utcnow() - sess_token_create_time).total_seconds() > 3500:
+    #     return "error, expired token", 400
 
     #get json data from request 
     data = request.get_json()
@@ -136,8 +136,8 @@ def playlist_analyzer():
     if not sess_access_token or not sess_refresh_token or not sess_token_create_time:
         return "error, missing token", 403
 
-    if (datetime.utcnow() - sess_token_create_time).total_seconds() > 3500:
-        return "error, expired token", 400
+    # if (datetime.utcnow() - sess_token_create_time).total_seconds() > 3500:
+    #     return "error, expired token", 400
     
     sp = spotipy.Spotify(auth=sess_access_token) 
     
