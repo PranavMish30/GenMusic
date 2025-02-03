@@ -29,19 +29,19 @@ def index():
         
         return redirect(url)
     
-    sess_access_token, sess_refresh_token, sess_token_create_time = session.get("access_token", None) , session.get('refresh_token', None), session.get('token_create', None)
-    if (datetime.utcnow() - sess_token_create_time).total_seconds() > 3500:
-        ref_url = "https://accounts.spotify.com/api/token"
-        headers = {"Content-Type":"application/x-www-form-urlencoded"}
-        payload = {"grant_type":"refresh_token","refresh_token":sess_refresh_token}
-        resp = requests.post(url, headers=headers, data=payload, auth=requests.auth.HTTPBasicAuth(app.config['SPOTIFY_CLIENT_ID'], app.config['SPOTIFY_CLIENT_SECRET']))
+    # sess_access_token, sess_refresh_token, sess_token_create_time = session.get("access_token", None) , session.get('refresh_token', None), session.get('token_create', None)
+    # if (datetime.utcnow() - sess_token_create_time).total_seconds() > 3500:
+    #     ref_url = "https://accounts.spotify.com/api/token"
+    #     headers = {"Content-Type":"application/x-www-form-urlencoded"}
+    #     payload = {"grant_type":"refresh_token","refresh_token":sess_refresh_token}
+    #     resp = requests.post(url, headers=headers, data=payload, auth=requests.auth.HTTPBasicAuth(app.config['SPOTIFY_CLIENT_ID'], app.config['SPOTIFY_CLIENT_SECRET']))
         
-        if 200 <= resp.status_code <= 299:
-            parsed_resp = resp.json()
-            session['access_token'] = parsed_resp['access_token']
+    #     if 200 <= resp.status_code <= 299:
+    #         parsed_resp = resp.json()
+    #         session['access_token'] = parsed_resp['access_token']
 
-        else:
-            return redirect(url)
+    #     else:
+    #         return redirect(url)
 
     
     return render_template("index.html")
