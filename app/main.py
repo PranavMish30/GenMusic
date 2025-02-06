@@ -29,48 +29,81 @@ def index():
         
         return redirect(url)
     
-    # sess_access_token, sess_refresh_token, sess_token_create_time = session.get("access_token", None) , session.get('refresh_token', None), session.get('token_create', None)
-    # if (datetime.utcnow() - sess_token_create_time).total_seconds() > 3500:
-    #     ref_url = "https://accounts.spotify.com/api/token"
-    #     headers = {"Content-Type":"application/x-www-form-urlencoded"}
-    #     payload = {"grant_type":"refresh_token","refresh_token":sess_refresh_token}
-    #     resp = requests.post(url, headers=headers, data=payload, auth=requests.auth.HTTPBasicAuth(app.config['SPOTIFY_CLIENT_ID'], app.config['SPOTIFY_CLIENT_SECRET']))
+    sess_access_token = session.get("access_token")
+    sess_refresh_token = session.get("refresh_token")
+    sess_token_create_time = session.get("token_create")
+
+    # Convert session timestamp to datetime object
+    if sess_token_create_time:
+        sess_token_create_time = datetime.strptime(sess_token_create_time, "%Y-%m-%d %H:%M:%S.%f")
+
+    # Check if token is expired (assuming 3600s validity)
+    if (datetime.utcnow() - sess_token_create_time).total_seconds() > 3500:
+        ref_url = "https://accounts.spotify.com/api/token"
+        headers = {"Content-Type": "application/x-www-form-urlencoded"}
+        payload = {
+            "grant_type": "refresh_token",
+            "refresh_token": sess_refresh_token
+        }
         
-    #     if 200 <= resp.status_code <= 299:
-    #         parsed_resp = resp.json()
-    #         session['access_token'] = parsed_resp['access_token']
+        resp = requests.post(
+            ref_url, headers=headers, data=payload,
+            auth=requests.auth.HTTPBasicAuth(
+                app.config['SPOTIFY_CLIENT_ID'], app.config['SPOTIFY_CLIENT_SECRET']
+            )
+        )
 
-    #     else:
-    #         return redirect(url)
-
+        if 200 <= resp.status_code < 300:
+            parsed_resp = resp.json()
+            session['access_token'] = parsed_resp['access_token']
+            session['token_create'] = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S.%f")
+        else:
+            # Redirect to Spotify login if token refresh fails
+            return redirect(url)
     
     return render_template("index.html")
 
 @app.route("/get-recommended-playlist", methods=["POST"])
 def get_rec_playlist():
-    #if expired, refresh the token here 
-    sess_access_token, sess_refresh_token, sess_token_create_time = session.get("access_token", None) , session.get('refresh_token', None), session.get('token_create', None)
+    # Get session tokens
+    sess_access_token = session.get("access_token")
+    sess_refresh_token = session.get("refresh_token")
+    sess_token_create_time = session.get("token_create")
 
+    # Check if any token is missing
     if not sess_access_token or not sess_refresh_token or not sess_token_create_time:
-        return "error, missing token", 403
+        return jsonify({"error": "Missing authentication token"}), 403
 
-    # if (datetime.utcnow() - sess_token_create_time).total_seconds() > 3500:
-    #     return "error, expired token", 400
+    # Convert timestamp to datetime object for comparison
+    try:
+        sess_token_create_time = datetime.strptime(sess_token_create_time, "%Y-%m-%d %H:%M:%S.%f")
+    except ValueError:
+        return jsonify({"error": "Invalid token timestamp format"}), 403
 
-    #get json data from request 
+    # Check token expiry
+    if (datetime.utcnow() - sess_token_create_time).total_seconds() > 3500:
+        return jsonify({"error": "Token expired"}), 400
+
+    # Get JSON data from request
     data = request.get_json()
 
-    #func to get seed data 
+    # Get seed artist data
     seed = get_seed_artist.get_seed_artist(data, sess_access_token)
+    if not seed:
+        return jsonify({"error": "Failed to fetch seed artist"}), 400
 
-    #fetch recommended tracks and return to user 
+    # Fetch recommended tracks
     tracks = recommendations.gen_recommendations(data, sess_access_token, seed)
+    
+    # Extract URIs from the track list
     uris = [i['uri'] for i in tracks] 
+
+    # Prepare and return response
     resp_dict = {
-        "songs":tracks,
-        "uris": json.dumps(uris)
+        "songs": tracks,
+        "uris": uris  # No need for json.dumps()
     }
-    return jsonify(resp_dict) 
+    return jsonify(resp_dict)
 
 @app.route('/save-private-playlist', methods=['POST'])
 def create_private_playlist():
